@@ -1,0 +1,8 @@
+
+gradle/
+
+*.md
+
+.idea/
+
+.gradle/
