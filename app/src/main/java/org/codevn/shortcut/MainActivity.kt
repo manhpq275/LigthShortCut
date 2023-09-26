@@ -1,22 +1,26 @@
 package org.codevn.shortcut
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.app.NotificationManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
 import android.widget.ImageView
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
+import com.google.android.material.tabs.TabLayoutMediator
 import org.codevn.shortcut.adapters.SliderAdapter
 import org.codevn.shortcut.adapters.setPreviewBothSide
 import org.codevn.shortcut.data.AdapterDataType
+import org.codevn.shortcut.data.DataType
 import org.codevn.shortcut.data.ShortCutData
-import kotlin.system.exitProcess
+
 
 class MainActivity : AppCompatActivity() {
     private lateinit var sliderChoose: ViewPager2
@@ -24,6 +28,8 @@ class MainActivity : AppCompatActivity() {
     private var dataChoose: ArrayList<ShortCutData> = ArrayList()
     private lateinit var background1: ImageView
     private lateinit var background2: ImageView
+    private lateinit var title: AppCompatTextView
+    private lateinit var description: AppCompatTextView
     private var currentPosition = 0
 
     companion object {
@@ -117,6 +123,8 @@ class MainActivity : AppCompatActivity() {
         sliderChoose = findViewById(R.id.slider2)
         background1 = findViewById(R.id.imgBG1)
         background2= findViewById(R.id.imgBG2)
+        title= findViewById(R.id.tvTitle)
+        description= findViewById(R.id.tvDescription)
         sliderChooseAdapter = SliderAdapter(this)
         sliderChoose.apply {
             adapter = sliderChooseAdapter
@@ -128,6 +136,11 @@ class MainActivity : AppCompatActivity() {
 
         sliderChoose.registerOnPageChangeCallback(object :
             ViewPager2.OnPageChangeCallback() {
+            private var myState = 0
+            override fun onPageScrollStateChanged(state: Int) {
+                myState = state
+                super.onPageScrollStateChanged(state)
+            }
             override fun onPageScrolled(
                 position: Int,
                 positionOffset: Float,
@@ -140,9 +153,25 @@ class MainActivity : AppCompatActivity() {
                     }
                     background1.setImageResource(dataChoose[tmpIndex].background)
                     background2.alpha = 1 - positionOffset
+                    title.alpha = 1 - positionOffset
+                    description.alpha = 1 - positionOffset
                 } else {
                     background1.setImageResource(dataChoose[position].background)
                     background2.alpha = positionOffset
+                    title.alpha = positionOffset
+                    description.alpha = positionOffset
+                }
+                if (myState == ViewPager2.SCROLL_STATE_SETTLING) {
+                    title.alpha = 0f
+                    description.alpha =  0f
+                    title.animate()
+                        .setDuration(300)
+                        .alpha(1.0f)
+                        .setListener(null)
+                    description.animate()
+                        .setDuration(300)
+                        .alpha(1.0f)
+                        .setListener(null)
                 }
 
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels)
@@ -153,7 +182,9 @@ class MainActivity : AppCompatActivity() {
                 super.onPageSelected(position)
                 sliderChooseAdapter.setCurrentItem(position)
                 background2.setImageResource(dataChoose[position].background)
+                askPermissionIfNeed(position)
                 createBubble(position)
+
 
             }
 
@@ -164,14 +195,73 @@ class MainActivity : AppCompatActivity() {
         sliderChoose.setCurrentItem(currentPosition, false)
         sliderChooseAdapter.setCurrentItem(currentPosition)
         background2.setImageResource(dataChoose[currentPosition].background)
+        TabLayoutMediator(findViewById(R.id.tabLayout), sliderChoose) { tab, position ->
+
+        }.attach()
     }
 
+    private fun askPermissionDialog(message: String, needUri: Boolean, permission: String) {
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+        builder.setTitle("Warning")
+        builder.setMessage(message)
+        builder.setPositiveButton("OK"
+        ) { _, _ ->
+            val packageName = packageName ?: return@setPositiveButton
+            val intent = Intent(permission)
+            if (needUri) {
+                val uri = Uri.parse("package:$packageName")
+                intent.data = uri
+            }
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            overlayPermissionLauncher.launch(intent)
+        }
+        builder.setNegativeButton("Cancel"
+        ) { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        val alertDialog: AlertDialog = builder.create()
+        alertDialog.show()
+    }
+    private fun askPermissionIfNeed(indexBubble: Int) {
+        when (indexBubble) {
+            DataType.SILENT.ordinal -> {
+                val manager = this.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                if(!manager.isNotificationPolicyAccessGranted) {
+                    askPermissionDialog("App cần quyền không làm phiền", false, android.provider.Settings
+                        .ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                }
+            }
+            DataType.NOT_DISTURB.ordinal -> {
+
+            }
+            DataType.CAMERA.ordinal -> {
+            }
+            DataType.FLASH.ordinal -> {
+
+            }
+            DataType.MEMO.ordinal -> {
+
+            }
+            DataType.MAGNIFIER.ordinal -> {
+
+            }
+            DataType.SHORTCUT.ordinal -> {
+
+            }
+            else -> {
+
+            }
+
+        }
+    }
     override fun onStop() {
         super.onStop()
         finishAndRemoveTask()
 
     }
     fun createBubble(position: Int){
+        askForDrawOverlayPermission()
         stopMyService()
         val intent = Intent(this, MyServiceKt::class.java)
         intent.putExtra("size", 60)

@@ -1,11 +1,14 @@
 package org.codevn.shortcut
 
 import android.annotation.SuppressLint
+import android.app.AlertDialog
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
 import android.media.AudioManager
+import android.net.Uri
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -46,6 +49,49 @@ class MyServiceKt : ExpandableBubbleService() {
         return launchIntent
     }
 
+    private fun doNotDisturbChange() {
+        val manager = this.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+
+        if (manager.isNotificationPolicyAccessGranted) {
+            val current = manager.currentInterruptionFilter
+            if (current == NotificationManager.INTERRUPTION_FILTER_ALL) {
+                manager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_PRIORITY);
+            } else {
+                manager.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_ALL);
+            }
+
+        } else {
+            val intent = getIntentApp("org.codevn.shortcut")
+            intent?.let {
+                intent.putExtra("index", indexBubble)
+                startActivity(intent)
+            }
+        }
+    }
+
+    private fun silentModeChange() {
+        val manager = this.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        if (manager.isNotificationPolicyAccessGranted) {
+            val am = getSystemService(AUDIO_SERVICE) as AudioManager
+            if (oldRingMode != -1 &&
+                am.ringerMode == AudioManager.RINGER_MODE_SILENT &&
+                oldRingMode != AudioManager.RINGER_MODE_SILENT
+            ) {
+                am.ringerMode = oldRingMode
+            } else if (am.ringerMode != AudioManager.RINGER_MODE_SILENT) {
+                oldRingMode = am.ringerMode
+                am.ringerMode = AudioManager.RINGER_MODE_SILENT
+            }
+
+        } else {
+            val intent = getIntentApp("org.codevn.shortcut")
+            intent?.let {
+                intent.putExtra("index", indexBubble)
+                startActivity(intent)
+            }
+        }
+    }
+
     override fun configBubble(): BubbleBuilder? {
         var imgView = ViewHelper.fromDrawable(this, R.drawable.silent_mode, 60, 60)
 
@@ -64,23 +110,17 @@ class MyServiceKt : ExpandableBubbleService() {
         imgView.setOnClickListener {
             when (indexBubble) {
                 DataType.SILENT.ordinal -> {
-                    val am = getSystemService(AUDIO_SERVICE) as AudioManager
-                    if (oldRingMode != -1 &&
-                        am.ringerMode == AudioManager.RINGER_MODE_SILENT &&
-                        oldRingMode != AudioManager.RINGER_MODE_SILENT
-                    ) {
-                        am.ringerMode = oldRingMode
-                    }
-                    oldRingMode = am.ringerMode
-                    if (oldRingMode != AudioManager.RINGER_MODE_SILENT) {
-                        am.ringerMode = AudioManager.RINGER_MODE_SILENT
-                    }
+                    silentModeChange()
                 }
                 DataType.NOT_DISTURB.ordinal -> {
-
+                    doNotDisturbChange()
                 }
                 DataType.CAMERA.ordinal -> {
-
+                    val intent = getIntentApp("com.android.camera")
+                    intent?.let {
+                        intent.putExtra("index", indexBubble)
+                        startActivity(intent)
+                    }
                 }
                 DataType.FLASH.ordinal -> {
                     openFlashLight()

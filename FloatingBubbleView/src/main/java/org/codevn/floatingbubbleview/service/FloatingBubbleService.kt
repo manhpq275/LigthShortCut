@@ -22,7 +22,7 @@ abstract class FloatingBubbleService : Service() {
         super.onCreate()
 
         if (canDrawOverlays().not()) {
-            throw SecurityException("Permission Denied: \"display over other app\" permission IS NOT granted!")
+            return
         }
 
         sez.with(this.applicationContext)
