@@ -23,8 +23,8 @@ import org.codevn.shortcut.data.DataType
 
 
 class MyServiceKt : ExpandableBubbleService() {
-    private var iconBubble: Int = 0
-    private var indexBubble: Int = 0
+    private var iconBubble: Int = -1
+    private var indexBubble: Int = -1
     var flashLightStatus: Boolean = false
     var oldRingMode: Int = -1
     override fun startNotificationForeground() {
@@ -37,6 +37,7 @@ class MyServiceKt : ExpandableBubbleService() {
         intent?.extras?.let {
             iconBubble = it.getInt("id")
             indexBubble = it.getInt("index")
+
             setup()
             minimize()
         }
