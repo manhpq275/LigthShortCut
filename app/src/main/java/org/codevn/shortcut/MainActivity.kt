@@ -131,12 +131,14 @@ class MainActivity : AppCompatActivity() {
         val dialogView: View = inflater.inflate(R.layout.dialog_layout, null)
         val builder: AlertDialog.Builder = AlertDialog.Builder(this)
         builder.setView(dialogView)
+        builder.setCancelable(false)
         dialogView.findViewById<TextView>(R.id.message).text = message
         dialogView.findViewById<TextView>(R.id.btnCancel).setOnClickListener {
             alertDialog?.dismiss()
         }
         dialogView.findViewById<TextView>(R.id.btnOk).setOnClickListener {
             val packageName = packageName ?: return@setOnClickListener
+            alertDialog?.dismiss()
             val intent = Intent(permission)
             if (needUri) {
                 val uri = Uri.parse("package:$packageName")
@@ -144,10 +146,10 @@ class MainActivity : AppCompatActivity() {
             }
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             overlayPermissionLauncher.launch(intent)
+
         }
 
         alertDialog = builder.create()
-
         alertDialog?.show()
         alertDialog?.window?.setLayout(
             (resources.displayMetrics.widthPixels * 0.9).toInt(),
@@ -168,6 +170,7 @@ class MainActivity : AppCompatActivity() {
             DataType.NOT_DISTURB.ordinal -> {
             }
             DataType.CAMERA.ordinal -> {
+
             }
             DataType.FLASH.ordinal -> {
             }
@@ -185,7 +188,7 @@ class MainActivity : AppCompatActivity() {
     }
     override fun onStop() {
         super.onStop()
-        finishAndRemoveTask()
+       // finishAndRemoveTask()
 
     }
     fun createBubble(position: Int){

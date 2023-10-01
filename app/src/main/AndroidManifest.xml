@@ -27,7 +27,6 @@
         <activity
             android:name="org.codevn.shortcut.MainActivity"
             android:exported="true"
-            android:noHistory="true"
             android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

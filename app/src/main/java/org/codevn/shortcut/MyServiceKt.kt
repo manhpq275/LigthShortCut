@@ -149,8 +149,8 @@ class MyServiceKt : ExpandableBubbleService() {
             // set bubble view
             .bubbleView(imgView)
             .bubbleStyle(null)
-            .startLocation(100, 100)    // in dp
-            .startLocationPx(100, 100)  // in px
+            .startLocation(0, 100)    // in dp
+            .startLocationPx(0, 100)  // in px
             .enableAnimateToEdge(true)
             //  .closeBubbleView(ViewHelper.fromDrawable(this, R.drawable.ic_close_bubble, 60, 60))
             .closeBubbleStyle(null)
