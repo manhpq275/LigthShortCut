@@ -3,9 +3,6 @@ import java.io.Serializable
 import org.codevn.shortcut.R
 
 enum class DataType(val value: Array<Any>) : Serializable {
-
-
-
     SILENT(arrayOf(
         R.drawable.ic_silent_active,
         R.drawable.ic_silent,
@@ -88,4 +85,19 @@ enum class DataType(val value: Array<Any>) : Serializable {
     fun description(): String {
         return this.value[5] as String
     }
+
+    fun getAdditionalOption(): Array<String> {
+        return when (this.ordinal) {
+            CAMERA.ordinal -> {
+                arrayOf("Photos", "Camera")
+            }
+            SHORTCUT.ordinal -> {
+                arrayOf("Choose a shortcut...")
+            }
+            else -> {
+                arrayOf()
+            }
+        }
+    }
 }
+data class ShortCutData(val position: Int, val additionalOption: String): Serializable

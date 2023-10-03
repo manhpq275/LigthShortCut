@@ -66,5 +66,15 @@
             android:text="Switch between Silent and Ring for calls and alerts."
             android:layout_height="wrap_content"
             />
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/additionalOption"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_marginTop="50dp"
+            android:layout_centerHorizontal="true"
+            android:layout_below="@+id/tvTitle"
+            >
+
+        </androidx.appcompat.widget.AppCompatSpinner>
     </RelativeLayout>
 </layout>

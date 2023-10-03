@@ -1,14 +1,12 @@
 package org.codevn.shortcut
 
 import android.annotation.SuppressLint
-import android.app.AlertDialog
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.hardware.camera2.CameraAccessException
 import android.hardware.camera2.CameraManager
 import android.media.AudioManager
-import android.net.Uri
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
@@ -20,11 +18,11 @@ import org.codevn.floatingbubbleview.service.expandable.BubbleBuilder
 import org.codevn.floatingbubbleview.service.expandable.ExpandableBubbleService
 import org.codevn.floatingbubbleview.service.expandable.ExpandedBubbleBuilder
 import org.codevn.shortcut.data.DataType
+import org.codevn.shortcut.data.ShortCutConfig
 
 
 class MyServiceKt : ExpandableBubbleService() {
-    private var iconBubble: Int = -1
-    private var indexBubble: Int = -1
+    lateinit var shortCutConfig: ShortCutConfig
     var flashLightStatus: Boolean = false
     var oldRingMode: Int = -1
     override fun startNotificationForeground() {
@@ -35,9 +33,6 @@ class MyServiceKt : ExpandableBubbleService() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intent?.extras?.let {
-            iconBubble = it.getInt("id")
-            indexBubble = it.getInt("index")
-
             setup()
             minimize()
         }
@@ -64,8 +59,11 @@ class MyServiceKt : ExpandableBubbleService() {
         } else {
             val intent = getIntentApp("org.codevn.shortcut")
             intent?.let {
-                intent.putExtra("index", indexBubble)
-                startActivity(intent)
+                shortCutConfig.getShortCut()?.position.let {
+                    index ->
+                    intent.putExtra("index", index)
+                    startActivity(intent)
+                }
             }
         }
     }
@@ -87,29 +85,35 @@ class MyServiceKt : ExpandableBubbleService() {
         } else {
             val intent = getIntentApp("org.codevn.shortcut")
             intent?.let {
-                intent.putExtra("index", indexBubble)
-                startActivity(intent)
+                shortCutConfig.getShortCut()?.position?.let {
+                        index ->
+                    intent.putExtra("index", index)
+                    startActivity(intent)
+                }
             }
         }
     }
 
-    override fun configBubble(): BubbleBuilder? {
+    @SuppressLint("QueryPermissionsNeeded")
+    override fun configBubble(): BubbleBuilder {
+        shortCutConfig = ShortCutConfig(this)
+        val data = shortCutConfig.getShortCut()?.position?.let { DataType.values().get(it) }
         var imgView = ViewHelper.fromDrawable(this, R.drawable.silent_mode, 60, 60)
 
-        if (iconBubble != 0) {
-            imgView = ViewHelper.fromDrawable(this, iconBubble, 60, 60)
+        if (data?.ordinal != null) {
+            imgView = ViewHelper.fromDrawable(this, data.bubble(), 60, 60)
         }
         imgView.setOnLongClickListener {
             val intent = getIntentApp("org.codevn.shortcut")
             intent?.let {
-                intent.putExtra("index", indexBubble)
+                intent.putExtra("index", shortCutConfig.getShortCut()?.position)
                 startActivity(intent)
             }
 
             false
         }
         imgView.setOnClickListener {
-            when (indexBubble) {
+            when (shortCutConfig.getShortCut()?.position) {
                 DataType.SILENT.ordinal -> {
                     silentModeChange()
                 }
@@ -117,10 +121,24 @@ class MyServiceKt : ExpandableBubbleService() {
                     doNotDisturbChange()
                 }
                 DataType.CAMERA.ordinal -> {
-                    val intent = getIntentApp("com.android.camera")
-                    intent?.let {
-                        intent.putExtra("index", indexBubble)
-                        startActivity(intent)
+                    when (shortCutConfig.getShortCut()?.additionalOption) {
+                        "Photos" -> {
+                            val intent = Intent.makeMainSelectorActivity(
+                                Intent.ACTION_MAIN,
+                                Intent.CATEGORY_APP_GALLERY
+                            )
+
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            startActivity(intent)
+                        }
+                        else -> {
+                            val intent = Intent("android.media.action.IMAGE_CAPTURE")
+                            startActivity(
+                                packageManager.getLaunchIntentForPackage(
+                                    intent.resolveActivity(packageManager).packageName
+                                )
+                            )
+                        }
                     }
                 }
                 DataType.FLASH.ordinal -> {
