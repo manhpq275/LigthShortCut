@@ -3,79 +3,82 @@ package org.codevn.shortcut.adapters
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.Drawable
-import android.os.Parcel
-import android.os.Parcelable
+import android.provider.ContactsContract.Data
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
 import android.widget.ImageView
 import android.widget.TextView
-import com.jaredrummler.materialspinner.MaterialSpinnerBaseAdapter
+import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.RecyclerView
 import org.codevn.shortcut.R
+import org.codevn.shortcut.base.BaseViewHolder
+import org.codevn.shortcut.data.AppListMain
+import org.codevn.shortcut.data.DataType
+import org.codevn.shortcut.data.ShortCutData
+import org.codevn.shortcut.databinding.ItemAdditionalOptionBinding
 
 
 class DropDownListAdapter(
     private val context: Context,
-    private val icons: Array<Int>,
-    var names: Array<String>,
-    private val iconsApp: Array<Drawable> = arrayOf()
-): MaterialSpinnerBaseAdapter(context), Parcelable {
-
-    private var inflater: LayoutInflater = LayoutInflater.from(context)
-
-    constructor(parcel: Parcel) : this(
-        TODO("context"),
-        TODO("icons"),
-        parcel.createStringArray(),
-        TODO("iconsApp")
-    ) {
-
+    private val onClickItem: (ShortCutData?, AppListMain?) -> Unit
+) : RecyclerView.Adapter<BaseViewHolder>() {
+    private var data = ArrayList<Any>()
+    var layoutInflater: LayoutInflater = LayoutInflater.from(context)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BaseViewHolder {
+        val view = layoutInflater.inflate(R.layout.item_additional_option, parent, false)
+        return ChooseViewHolder(view)
     }
 
-    override fun getCount(): Int {
-        if (iconsApp.isNotEmpty()) {
-            return iconsApp.size
+    override fun onBindViewHolder(holder: BaseViewHolder, position: Int) {
+        when (holder) {
+            is ChooseViewHolder -> {
+                when (data[position]) {
+                    is ShortCutData -> {
+                        holder.binding(data[position] as ShortCutData)
+                    }
+                    is AppListMain -> {
+                        holder.binding(data[position] as AppListMain)
+                    }
+                }
+
+            }
         }
-        return icons.size
     }
-
-    override fun getItem(p0: Int): Any? {
-        return null
-    }
-
-    override fun getItemId(p0: Int): Long {
-        return 0
-    }
-
-    @SuppressLint("ViewHolder")
-    override fun getView(p0: Int, p1: View?, p2: ViewGroup?): View {
-        val view = inflater.inflate(R.layout.custom_spinner_items, null)
-        val icon: ImageView? = view?.findViewById(R.id.imageView)
-        if (iconsApp.isNotEmpty()) {
-            icon?.setImageDrawable(iconsApp[p0])
-        } else {
-            icon?.setImageResource(icons[p0])
+    @SuppressLint("NotifyDataSetChanged")
+    fun addItems(items: List<Any>, isFirst: Boolean) {
+        if (isFirst) {
+            data.clear()
         }
-        view?.findViewById<TextView>(R.id.textView)?.text = names[p0]
-        return view!!
+        data.addAll(items)
+        notifyDataSetChanged()
     }
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeStringArray(names)
+    override fun getItemCount(): Int {
+        return data.size
     }
 
-    override fun describeContents(): Int {
-        return 0
-    }
+    inner class ChooseViewHolder(v: View) : BaseViewHolder(v, context) {
+        private val binding: ItemAdditionalOptionBinding? = DataBindingUtil.bind(v)
 
-    companion object CREATOR : Parcelable.Creator<DropDownListAdapter> {
-        override fun createFromParcel(parcel: Parcel): DropDownListAdapter {
-            return DropDownListAdapter(parcel)
+        init {
+            v.tag = binding
         }
 
-        override fun newArray(size: Int): Array<DropDownListAdapter?> {
-            return arrayOfNulls(size)
+        fun binding(data: ShortCutData) {
+            binding?.imageView?.setImageResource(data.icon)
+            binding?.textView?.text = data.additionalOption
+            binding?.root?.setOnClickListener {
+                onClickItem.invoke(data, null)
+            }
+        }
+
+        fun binding(data: AppListMain) {
+            binding?.imageView?.setImageDrawable(data.icon)
+            binding?.textView?.text = data.appName
+            binding?.root?.setOnClickListener {
+                onClickItem.invoke(null, data)
+            }
         }
     }
 }

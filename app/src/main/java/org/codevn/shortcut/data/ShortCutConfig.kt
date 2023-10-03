@@ -15,7 +15,7 @@ class ShortCutConfig(context: Context) : SharedPreferenceUtils() {
             context.getSharedPreferences(SHORT_CUT_CONFIG_PRIVATE_KEY, Context.MODE_PRIVATE)
     }
     fun saveShortCut(position: Int, additionalInfo: String) {
-        save(SHORTCUT_SELECTED, ShortCutData(position, additionalInfo))
+        save(SHORTCUT_SELECTED, ShortCutData(position, 0, additionalInfo))
     }
     fun getShortCut(): ShortCutData? {
         return get(SHORTCUT_SELECTED, ShortCutData::class.java)

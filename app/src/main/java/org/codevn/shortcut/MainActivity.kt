@@ -5,30 +5,33 @@ import android.app.AlertDialog
 import android.app.NotificationManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
+import androidx.appcompat.widget.LinearLayoutCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.LayoutManager
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayoutMediator
-import com.jaredrummler.materialspinner.MaterialSpinner
 import org.codevn.shortcut.adapters.DropDownListAdapter
 import org.codevn.shortcut.adapters.SliderAdapter
 import org.codevn.shortcut.adapters.setPreviewBothSide
 import org.codevn.shortcut.data.AppListMain
 import org.codevn.shortcut.data.DataType
 import org.codevn.shortcut.data.ShortCutConfig
-import java.lang.reflect.Field
+import org.codevn.shortcut.data.ShortCutData
 import kotlin.math.roundToInt
 
 
@@ -42,10 +45,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var title: AppCompatTextView
     private lateinit var description: AppCompatTextView
     private var currentPosition = 0
-    private lateinit var spinner: MaterialSpinner
+    private lateinit var additionalInfo: LinearLayoutCompat
     private lateinit var shortCutConfig: ShortCutConfig
-    private var sourceAdditional : Array<String> = arrayOf()
     private var appListMainArrayList: ArrayList<AppListMain> = ArrayList()
+    private lateinit var dropDownView: RecyclerView
+    private lateinit var dropDownAdapter: DropDownListAdapter
+    private val dropDownHeight = 500
 
     companion object {
         var isVisible = false
@@ -58,6 +63,7 @@ class MainActivity : AppCompatActivity() {
             permission
         ) == PackageManager.PERMISSION_GRANTED
     }
+
     @SuppressLint("QueryPermissionsNeeded")
     fun loadApps() {
         try {
@@ -77,13 +83,38 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
     }
+
+    private lateinit var imageSelected: ImageView
+    private lateinit var nameSelected: TextView
     @SuppressLint("ClickableViewAccessibility", "DiscouragedPrivateApi")
     private fun initView() {
         window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
-        spinner = findViewById(R.id.additionalOption)
+        imageSelected = findViewById(R.id.imageSelected)
+        nameSelected = findViewById(R.id.nameSelected)
+        additionalInfo = findViewById(R.id.additionalOption)
+        dropDownView = findViewById(R.id.listAdditionalOption)
+        dropDownAdapter =
+            DropDownListAdapter(this@MainActivity, onClickItem = { shortCutData, appListMain ->
+                shortCutData?.let {
+                    shortCutConfig.saveShortCut(currentPosition, it.additionalOption)
+                    imageSelected.setImageResource(it.icon)
+                    nameSelected.text = it.additionalOption
+                }
+                appListMain?.let {
+                    shortCutConfig.saveShortCut(currentPosition, it.packageName)
+                    imageSelected.setImageDrawable(it.icon)
+                    nameSelected.text = it.appName
+                }
+                dropDownView.visibility = View.GONE
+            })
+        dropDownView.apply {
+            adapter = dropDownAdapter
+            clipToPadding = false
+            clipChildren = false
+        }
 
         sliderChoose = findViewById(R.id.slider2)
         background1 = findViewById(R.id.imgBG1)
@@ -150,87 +181,37 @@ class MainActivity : AppCompatActivity() {
                 super.onPageSelected(position)
                 sliderChooseAdapter.setCurrentItem(position)
                 background2.setImageResource(dataChoose[position].getBackground())
+
                 when (currentPosition) {
                     DataType.CAMERA.ordinal -> {
-                        spinner.visibility = View.VISIBLE
-                        spinner.adapter = DropDownListAdapter(this@MainActivity,
-                            arrayOf(R.drawable.ic_photo, R.drawable.ic_camera_small)
-                            , DataType.CAMERA.getAdditionalOption()
+                        additionalInfo.visibility = View.VISIBLE
+                        shortCutConfig.saveShortCut(
+                            currentPosition,
+                            DataType.CAMERA.getAdditionalOption()[0]
                         )
-                        shortCutConfig.saveShortCut(currentPosition, DataType.CAMERA.getAdditionalOption()[0])
-
                     }
                     DataType.SHORTCUT.ordinal -> {
-                        spinner.visibility = View.VISIBLE
-                        spinner.adapter = DropDownListAdapter(this@MainActivity,
-                            arrayOf(R.drawable.ic_shortcut_active),
-                            appListMainArrayList.map { it.appName }.toTypedArray(),
-                            appListMainArrayList.map { it.icon }.toTypedArray()
+                        additionalInfo.visibility = View.VISIBLE
+                        shortCutConfig.saveShortCut(
+                            currentPosition,
+                            DataType.SHORTCUT.getAdditionalOption()[0]
                         )
-                        shortCutConfig.saveShortCut(currentPosition, DataType.SHORTCUT.getAdditionalOption()[0])
 
                     }
                     else -> {
-                        spinner.visibility = View.GONE
+                        additionalInfo.visibility = View.GONE
                         shortCutConfig.saveShortCut(currentPosition, "")
                     }
                 }
+                setAdapterPopupView()
                 askPermissionIfNeed(position)
                 createBubble(position)
             }
         })
         dataChoose.addAll(DataType.values())
-        if (shortCutConfig.getShortCut()?.additionalOption == "") {
-            spinner.adapter = DropDownListAdapter(this@MainActivity,
-                arrayOf()
-                ,  arrayOf()
-            )
-            sourceAdditional = arrayOf()
-            spinner.visibility = View.GONE
-        } else {
-            spinner.visibility = View.VISIBLE
-            when (shortCutConfig.getShortCut()?.position) {
-                DataType.CAMERA.ordinal -> {
-                    spinner.adapter = DropDownListAdapter(this@MainActivity,
-                        arrayOf(R.drawable.ic_photo, R.drawable.ic_camera_small)
-                        , DataType.CAMERA.getAdditionalOption()
-                    )
-                    sourceAdditional = DataType.CAMERA.getAdditionalOption()
-                }
-                DataType.SHORTCUT.ordinal -> {
-                    spinner.adapter = DropDownListAdapter(this@MainActivity,
-                        arrayOf(R.drawable.ic_shortcut_active),
-                        appListMainArrayList.map { it.appName }.toTypedArray(),
-                        appListMainArrayList.map { it.icon }.toTypedArray()
-                    )
-                    sourceAdditional = appListMainArrayList.map { it.appName }.toTypedArray()
-                }
-            }
-
-        }
-
-        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener,
-            AdapterView.OnItemClickListener {
-            override fun onItemSelected(
-                parent: AdapterView<*>?,
-                view: View,
-                position: Int,
-                id: Long
-            ) {
-                when (dataChoose[currentPosition].ordinal) {
-                    DataType.CAMERA.ordinal -> {
-                        shortCutConfig.saveShortCut(currentPosition, sourceAdditional[position])
-                    }
-                    else -> {
-                        shortCutConfig.saveShortCut(currentPosition, "")
-                    }
-                }
-            }
-
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-            override fun onItemClick(p0: AdapterView<*>?, p1: View?, p2: Int, p3: Long) {
-
-            }
+        setAdapterPopupView()
+        additionalInfo.setOnClickListener {
+            dropDownView.visibility = View.VISIBLE
         }
         sliderChooseAdapter.addItems(dataChoose, true)
         sliderChoose.setCurrentItem(currentPosition, false)
@@ -239,6 +220,62 @@ class MainActivity : AppCompatActivity() {
         TabLayoutMediator(findViewById(R.id.tabLayout), sliderChoose) { tab, position ->
 
         }.attach()
+    }
+
+    private fun setAdapterPopupView() {
+        if (shortCutConfig.getShortCut()?.additionalOption == "") {
+            dropDownView.visibility = View.GONE
+            additionalInfo.visibility = View.GONE
+        } else {
+            //dropDownView.visibility = View.VISIBLE
+            additionalInfo.visibility = View.VISIBLE
+            when (shortCutConfig.getShortCut()?.position) {
+                DataType.CAMERA.ordinal -> {
+                    dropDownAdapter.addItems(
+                        arrayListOf(
+                            ShortCutData(
+                                0,
+                                R.drawable.ic_photo,
+                                DataType.CAMERA.getAdditionalOption()[0]
+                            ),
+                            ShortCutData(
+                                1,
+                                R.drawable.ic_camera_small,
+                                DataType.CAMERA.getAdditionalOption()[1]
+                            ),
+                        ), true
+                    )
+                    shortCutConfig.getShortCut()?.additionalOption?.let {
+                        when (DataType.CAMERA.getAdditionalOption().indexOf(it)) {
+                            0 -> {
+                                imageSelected.setImageResource(R.drawable.ic_photo)
+                                nameSelected.text = DataType.CAMERA.getAdditionalOption()[0]
+                            }
+                            1 -> {
+                                imageSelected.setImageResource(R.drawable.ic_camera_small)
+                                nameSelected.text = DataType.CAMERA.getAdditionalOption()[1]
+                            }
+                        }
+
+                    }
+
+                }
+                DataType.SHORTCUT.ordinal -> {
+                    dropDownAdapter.addItems(appListMainArrayList, true)
+                    shortCutConfig.getShortCut()?.additionalOption?.let {
+                        packageName ->
+                        val index = appListMainArrayList.map { it.packageName }.indexOf(packageName)
+                        if (index >= 0) {
+                            imageSelected.setImageDrawable(appListMainArrayList[index].icon)
+                            nameSelected.text = appListMainArrayList[index].appName
+
+                        }
+
+                    }
+                }
+            }
+
+        }
     }
 
     private fun askPermissionDialog(message: String, needUri: Boolean, permission: String) {
@@ -361,3 +398,5 @@ class MainActivity : AppCompatActivity() {
     }
 
 }
+val Int.dp: Int
+    get() = (toFloat() * Resources.getSystem().displayMetrics.density + 0.5f).toInt()

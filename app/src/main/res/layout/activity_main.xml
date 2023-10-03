@@ -66,14 +66,60 @@
             android:text="Switch between Silent and Ring for calls and alerts."
             android:layout_height="wrap_content"
             />
-        <com.jaredrummler.materialspinner.MaterialSpinner
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/Id_const_layout"
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:layout_above="@+id/additionalOption"
+            android:padding="5dp"
+            android:layout_marginBottom="-55dp"
+            android:layout_centerHorizontal="true">
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/listAdditionalOption"
+                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:background="#DD000000"
+                app:layout_constrainedHeight="true"
+                app:layout_constraintBottom_toBottomOf="@+id/Id_const_layout"
+                app:layout_constraintEnd_toEndOf="@+id/Id_const_layout"
+                app:layout_constraintHeight_max="350dp"
+                app:layout_constraintHeight_min="60dp"
+                app:layout_constraintStart_toStartOf="@+id/Id_const_layout"
+                app:layout_constraintTop_toTopOf="@+id/Id_const_layout"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"/>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/additionalOption"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
+            android:layout_width="200dp"
             android:layout_marginTop="50dp"
+            android:gravity="center"
             android:layout_centerHorizontal="true"
             android:layout_below="@+id/tvTitle"
-            />
+            android:background="@color/transparent"
+            android:layout_height="30dp">
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/imageSelected"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:padding="5dp"
+                android:src="@drawable/ic_photo" /><!--Make sure image is present in Drawable folder-->
 
+            <TextView
+                android:padding="5dp"
+                android:id="@+id/nameSelected"
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:gravity="center"
+                android:text="Demo"
+
+                android:textColor="#fff" />
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_chevron_down"/>
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
     </RelativeLayout>
 </layout>
