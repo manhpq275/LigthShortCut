@@ -12,22 +12,23 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.view.WindowManager
-import android.widget.AdapterView
-import android.widget.ImageView
-import android.widget.Spinner
-import android.widget.TextView
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.AppCompatSpinner
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayoutMediator
+import com.jaredrummler.materialspinner.MaterialSpinner
 import org.codevn.shortcut.adapters.DropDownListAdapter
 import org.codevn.shortcut.adapters.SliderAdapter
 import org.codevn.shortcut.adapters.setPreviewBothSide
+import org.codevn.shortcut.data.AppListMain
 import org.codevn.shortcut.data.DataType
 import org.codevn.shortcut.data.ShortCutConfig
+import java.lang.reflect.Field
 import kotlin.math.roundToInt
 
 
@@ -41,9 +42,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var title: AppCompatTextView
     private lateinit var description: AppCompatTextView
     private var currentPosition = 0
-    private lateinit var spinner: Spinner
+    private lateinit var spinner: MaterialSpinner
     private lateinit var shortCutConfig: ShortCutConfig
     private var sourceAdditional : Array<String> = arrayOf()
+    private var appListMainArrayList: ArrayList<AppListMain> = ArrayList()
+
     companion object {
         var isVisible = false
         private const val CAMERA_PERMISSION = android.Manifest.permission.CAMERA
@@ -55,8 +58,26 @@ class MainActivity : AppCompatActivity() {
             permission
         ) == PackageManager.PERMISSION_GRANTED
     }
-
-    @SuppressLint("ClickableViewAccessibility")
+    @SuppressLint("QueryPermissionsNeeded")
+    fun loadApps() {
+        try {
+            appListMainArrayList = ArrayList()
+            val intent = Intent(Intent.ACTION_MAIN, null)
+            intent.addCategory(Intent.CATEGORY_LAUNCHER)
+            val resolveInfoList = packageManager.queryIntentActivities(intent, 0)
+            for (resolveInfo in resolveInfoList) {
+                val appListMain = AppListMain(
+                    resolveInfo.activityInfo.loadIcon(packageManager),
+                    resolveInfo.loadLabel(packageManager).toString(),
+                    resolveInfo.activityInfo.packageName
+                )
+                appListMainArrayList.add(appListMain)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    @SuppressLint("ClickableViewAccessibility", "DiscouragedPrivateApi")
     private fun initView() {
         window.setFlags(
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -77,7 +98,7 @@ class MainActivity : AppCompatActivity() {
             offscreenPageLimit = 10
             setPreviewBothSide(R.dimen._50dp, R.dimen._50dp)
         }
-
+        loadApps()
         sliderChoose.registerOnPageChangeCallback(object :
             ViewPager2.OnPageChangeCallback() {
             private var myState = 0
@@ -142,8 +163,9 @@ class MainActivity : AppCompatActivity() {
                     DataType.SHORTCUT.ordinal -> {
                         spinner.visibility = View.VISIBLE
                         spinner.adapter = DropDownListAdapter(this@MainActivity,
-                            arrayOf(R.drawable.ic_shortcut_active)
-                            , DataType.SHORTCUT.getAdditionalOption()
+                            arrayOf(R.drawable.ic_shortcut_active),
+                            appListMainArrayList.map { it.appName }.toTypedArray(),
+                            appListMainArrayList.map { it.icon }.toTypedArray()
                         )
                         shortCutConfig.saveShortCut(currentPosition, DataType.SHORTCUT.getAdditionalOption()[0])
 
@@ -177,10 +199,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 DataType.SHORTCUT.ordinal -> {
                     spinner.adapter = DropDownListAdapter(this@MainActivity,
-                        arrayOf(R.drawable.ic_shortcut_active)
-                        , DataType.SHORTCUT.getAdditionalOption()
+                        arrayOf(R.drawable.ic_shortcut_active),
+                        appListMainArrayList.map { it.appName }.toTypedArray(),
+                        appListMainArrayList.map { it.icon }.toTypedArray()
                     )
-                    sourceAdditional = DataType.SHORTCUT.getAdditionalOption()
+                    sourceAdditional = appListMainArrayList.map { it.appName }.toTypedArray()
                 }
             }
 

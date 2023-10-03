@@ -1,4 +1,5 @@
 package org.codevn.shortcut.data
+import android.graphics.drawable.Drawable
 import java.io.Serializable
 import org.codevn.shortcut.R
 
@@ -101,3 +102,4 @@ enum class DataType(val value: Array<Any>) : Serializable {
     }
 }
 data class ShortCutData(val position: Int, val additionalOption: String): Serializable
+data class AppListMain(val icon: Drawable, val appName: String, val packageName: String)
