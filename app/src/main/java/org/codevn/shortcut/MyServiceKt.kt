@@ -97,12 +97,9 @@ class MyServiceKt : ExpandableBubbleService() {
     @SuppressLint("QueryPermissionsNeeded")
     override fun configBubble(): BubbleBuilder {
         shortCutConfig = ShortCutConfig(this)
-        val data = shortCutConfig.getShortCut()?.position?.let { DataType.values().get(it) }
-        var imgView = ViewHelper.fromDrawable(this, R.drawable.silent_mode, 60, 60)
+        val data = DataType.values()[shortCutConfig.getShortCut().position]
+        val imgView = ViewHelper.fromDrawable(this, data.bubble(), 60, 60)
 
-        if (data?.ordinal != null) {
-            imgView = ViewHelper.fromDrawable(this, data.bubble(), 60, 60)
-        }
         imgView.setOnLongClickListener {
             val intent = getIntentApp("org.codevn.shortcut")
             intent?.let {
@@ -113,7 +110,7 @@ class MyServiceKt : ExpandableBubbleService() {
             false
         }
         imgView.setOnClickListener {
-            when (shortCutConfig.getShortCut()?.position) {
+            when (shortCutConfig.getShortCut().position) {
                 DataType.SILENT.ordinal -> {
                     silentModeChange()
                 }
@@ -121,8 +118,8 @@ class MyServiceKt : ExpandableBubbleService() {
                     doNotDisturbChange()
                 }
                 DataType.CAMERA.ordinal -> {
-                    when (shortCutConfig.getShortCut()?.additionalOption) {
-                        "Photos" -> {
+                    when (shortCutConfig.getShortCut().childPosition) {
+                        0 -> {
                             val intent = Intent.makeMainSelectorActivity(
                                 Intent.ACTION_MAIN,
                                 Intent.CATEGORY_APP_GALLERY
@@ -152,9 +149,13 @@ class MyServiceKt : ExpandableBubbleService() {
                 }
                 DataType.MAGNIFIER.ordinal -> {
 
+
                 }
                 DataType.SHORTCUT.ordinal -> {
-
+                    val intent = getIntentApp(shortCutConfig.getShortCut().additionalOption)
+                    intent?.let {
+                        startActivity(intent)
+                    }
                 }
                 else -> {
 

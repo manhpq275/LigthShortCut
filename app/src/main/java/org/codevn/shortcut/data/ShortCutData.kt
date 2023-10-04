@@ -101,5 +101,6 @@ enum class DataType(val value: Array<Any>) : Serializable {
         }
     }
 }
-data class ShortCutData(val position: Int, val icon: Int, val additionalOption: String): Serializable
+data class ShortCutData(val position: Int, val childPosition: Int, val additionalOption: String): Serializable
 data class AppListMain(val icon: Drawable, val appName: String, val packageName: String)
+data class CameraChoose(val icon: Int, val appName: String)

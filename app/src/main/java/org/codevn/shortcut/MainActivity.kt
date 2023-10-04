@@ -28,10 +28,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import org.codevn.shortcut.adapters.DropDownListAdapter
 import org.codevn.shortcut.adapters.SliderAdapter
 import org.codevn.shortcut.adapters.setPreviewBothSide
-import org.codevn.shortcut.data.AppListMain
-import org.codevn.shortcut.data.DataType
-import org.codevn.shortcut.data.ShortCutConfig
-import org.codevn.shortcut.data.ShortCutData
+import org.codevn.shortcut.data.*
 import kotlin.math.roundToInt
 
 
@@ -86,6 +83,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var imageSelected: ImageView
     private lateinit var nameSelected: TextView
+
     @SuppressLint("ClickableViewAccessibility", "DiscouragedPrivateApi")
     private fun initView() {
         window.setFlags(
@@ -97,14 +95,17 @@ class MainActivity : AppCompatActivity() {
         additionalInfo = findViewById(R.id.additionalOption)
         dropDownView = findViewById(R.id.listAdditionalOption)
         dropDownAdapter =
-            DropDownListAdapter(this@MainActivity, onClickItem = { shortCutData, appListMain ->
-                shortCutData?.let {
-                    shortCutConfig.saveShortCut(currentPosition, it.additionalOption)
+            DropDownListAdapter(this@MainActivity, onClickItem = { index, dataChoose, appListMain ->
+                dataChoose?.let {
+                    shortCutConfig.saveShortCut(ShortCutData(currentPosition, index, it.appName))
+                    shortCutConfig.saveCameraNear(ShortCutData(currentPosition, index, it.appName))
                     imageSelected.setImageResource(it.icon)
-                    nameSelected.text = it.additionalOption
+                    nameSelected.text = it.appName
                 }
                 appListMain?.let {
-                    shortCutConfig.saveShortCut(currentPosition, it.packageName)
+                    shortCutConfig.saveShortCut(ShortCutData(currentPosition, index, it.packageName))
+                    shortCutConfig.saveAppNear(ShortCutData(currentPosition, index, it.packageName))
+
                     imageSelected.setImageDrawable(it.icon)
                     nameSelected.text = it.appName
                 }
@@ -185,31 +186,32 @@ class MainActivity : AppCompatActivity() {
                 when (currentPosition) {
                     DataType.CAMERA.ordinal -> {
                         additionalInfo.visibility = View.VISIBLE
-                        shortCutConfig.saveShortCut(
-                            currentPosition,
-                            DataType.CAMERA.getAdditionalOption()[0]
-                        )
+                        val childPosition = shortCutConfig.getCameraNear().childPosition
+                        shortCutConfig.saveShortCut(ShortCutData(currentPosition,
+                            childPosition,
+                            cameraChooseSource[childPosition].appName))
                     }
                     DataType.SHORTCUT.ordinal -> {
                         additionalInfo.visibility = View.VISIBLE
-                        shortCutConfig.saveShortCut(
-                            currentPosition,
-                            DataType.SHORTCUT.getAdditionalOption()[0]
-                        )
+                        val childPosition = shortCutConfig.getAppNear().childPosition
+                        shortCutConfig.saveShortCut(ShortCutData(currentPosition,
+                            childPosition,
+                            appListMainArrayList[childPosition].packageName))
 
                     }
                     else -> {
                         additionalInfo.visibility = View.GONE
-                        shortCutConfig.saveShortCut(currentPosition, "")
+                        shortCutConfig.saveShortCut(ShortCutData(currentPosition, 0, ""))
                     }
                 }
-                setAdapterPopupView()
+                setAdapterPopupView(position)
                 askPermissionIfNeed(position)
                 createBubble(position)
             }
         })
         dataChoose.addAll(DataType.values())
-        setAdapterPopupView()
+        dropDownView.visibility = View.GONE
+        setAdapterPopupView(shortCutConfig.getShortCut().position)
         additionalInfo.setOnClickListener {
             dropDownView.visibility = View.VISIBLE
         }
@@ -222,59 +224,36 @@ class MainActivity : AppCompatActivity() {
         }.attach()
     }
 
-    private fun setAdapterPopupView() {
-        if (shortCutConfig.getShortCut()?.additionalOption == "") {
-            dropDownView.visibility = View.GONE
-            additionalInfo.visibility = View.GONE
-        } else {
-            //dropDownView.visibility = View.VISIBLE
-            additionalInfo.visibility = View.VISIBLE
-            when (shortCutConfig.getShortCut()?.position) {
-                DataType.CAMERA.ordinal -> {
-                    dropDownAdapter.addItems(
-                        arrayListOf(
-                            ShortCutData(
-                                0,
-                                R.drawable.ic_photo,
-                                DataType.CAMERA.getAdditionalOption()[0]
-                            ),
-                            ShortCutData(
-                                1,
-                                R.drawable.ic_camera_small,
-                                DataType.CAMERA.getAdditionalOption()[1]
-                            ),
-                        ), true
-                    )
-                    shortCutConfig.getShortCut()?.additionalOption?.let {
-                        when (DataType.CAMERA.getAdditionalOption().indexOf(it)) {
-                            0 -> {
-                                imageSelected.setImageResource(R.drawable.ic_photo)
-                                nameSelected.text = DataType.CAMERA.getAdditionalOption()[0]
-                            }
-                            1 -> {
-                                imageSelected.setImageResource(R.drawable.ic_camera_small)
-                                nameSelected.text = DataType.CAMERA.getAdditionalOption()[1]
-                            }
-                        }
+    private val cameraChooseSource = arrayListOf(
+        CameraChoose(
+            R.drawable.ic_photo,
+            DataType.CAMERA.getAdditionalOption()[0]
+        ),
+        CameraChoose(
+            R.drawable.ic_camera_small,
+            DataType.CAMERA.getAdditionalOption()[1]
+        ),
+    )
 
-                    }
-
-                }
-                DataType.SHORTCUT.ordinal -> {
-                    dropDownAdapter.addItems(appListMainArrayList, true)
-                    shortCutConfig.getShortCut()?.additionalOption?.let {
-                        packageName ->
-                        val index = appListMainArrayList.map { it.packageName }.indexOf(packageName)
-                        if (index >= 0) {
-                            imageSelected.setImageDrawable(appListMainArrayList[index].icon)
-                            nameSelected.text = appListMainArrayList[index].appName
-
-                        }
-
-                    }
-                }
+    private fun setAdapterPopupView(position: Int) {
+        additionalInfo.visibility = View.VISIBLE
+        when (position) {
+            DataType.CAMERA.ordinal -> {
+                dropDownAdapter.addItems(cameraChooseSource, true)
+                val childPosition = shortCutConfig.getCameraNear().childPosition
+                imageSelected.setImageResource(cameraChooseSource[childPosition].icon)
+                nameSelected.text = cameraChooseSource[childPosition].appName
             }
-
+            DataType.SHORTCUT.ordinal -> {
+                dropDownAdapter.addItems(appListMainArrayList, true)
+                val childPosition = shortCutConfig.getAppNear().childPosition
+                imageSelected.setImageDrawable(appListMainArrayList[childPosition].icon)
+                nameSelected.text = appListMainArrayList[childPosition].appName
+            }
+            else -> {
+                dropDownView.visibility = View.GONE
+                additionalInfo.visibility = View.GONE
+            }
         }
     }
 
@@ -398,5 +377,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 }
+
 val Int.dp: Int
     get() = (toFloat() * Resources.getSystem().displayMetrics.density + 0.5f).toInt()

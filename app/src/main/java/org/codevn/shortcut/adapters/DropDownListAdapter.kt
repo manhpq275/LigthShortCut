@@ -2,26 +2,21 @@ package org.codevn.shortcut.adapters
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.drawable.Drawable
-import android.provider.ContactsContract.Data
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.RecyclerView
 import org.codevn.shortcut.R
 import org.codevn.shortcut.base.BaseViewHolder
 import org.codevn.shortcut.data.AppListMain
-import org.codevn.shortcut.data.DataType
-import org.codevn.shortcut.data.ShortCutData
+import org.codevn.shortcut.data.CameraChoose
 import org.codevn.shortcut.databinding.ItemAdditionalOptionBinding
 
 
 class DropDownListAdapter(
     private val context: Context,
-    private val onClickItem: (ShortCutData?, AppListMain?) -> Unit
+    private val onClickItem: (Int, CameraChoose?, AppListMain?) -> Unit
 ) : RecyclerView.Adapter<BaseViewHolder>() {
     private var data = ArrayList<Any>()
     var layoutInflater: LayoutInflater = LayoutInflater.from(context)
@@ -34,11 +29,11 @@ class DropDownListAdapter(
         when (holder) {
             is ChooseViewHolder -> {
                 when (data[position]) {
-                    is ShortCutData -> {
-                        holder.binding(data[position] as ShortCutData)
+                    is CameraChoose -> {
+                        holder.binding(position, data[position] as CameraChoose)
                     }
                     is AppListMain -> {
-                        holder.binding(data[position] as AppListMain)
+                        holder.binding(position, data[position] as AppListMain)
                     }
                 }
 
@@ -65,19 +60,19 @@ class DropDownListAdapter(
             v.tag = binding
         }
 
-        fun binding(data: ShortCutData) {
+        fun binding(position: Int, data: CameraChoose) {
             binding?.imageView?.setImageResource(data.icon)
-            binding?.textView?.text = data.additionalOption
+            binding?.textView?.text = data.appName
             binding?.root?.setOnClickListener {
-                onClickItem.invoke(data, null)
+                onClickItem.invoke(position, data, null)
             }
         }
 
-        fun binding(data: AppListMain) {
+        fun binding(position: Int, data: AppListMain) {
             binding?.imageView?.setImageDrawable(data.icon)
             binding?.textView?.text = data.appName
             binding?.root?.setOnClickListener {
-                onClickItem.invoke(null, data)
+                onClickItem.invoke(position, null, data)
             }
         }
     }
